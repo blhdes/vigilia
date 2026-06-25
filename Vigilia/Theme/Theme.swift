@@ -59,6 +59,9 @@ enum Motion {
     static let voidDuration: Double = 2.4
 
     static let breath = Animation.easeInOut(duration: 1.6)
+    /// The seed giving way to the voice. Quick and soft: it should clear out of the way of
+    /// the first words, not linger over them (this is what fixes the raw, instant pop).
+    static let fade = Animation.easeOut(duration: 0.5)
     static let seal = Animation.easeInOut(duration: 1.1)
     static let ascension = Animation.easeIn(duration: ascensionDuration)
     static let toVoid = Animation.easeInOut(duration: voidDuration)
