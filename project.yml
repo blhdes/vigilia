@@ -1,0 +1,36 @@
+name: Vigilia
+options:
+  bundleIdPrefix: app
+  createIntermediateGroups: true
+  deploymentTarget:
+    iOS: "18.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  Vigilia:
+    type: application
+    platform: iOS
+    sources:
+      - Vigilia
+    info:
+      path: Info.plist
+      properties:
+        CFBundleDisplayName: Vigilia
+        UILaunchScreen: {}
+        UIStatusBarHidden: true
+        # Dark-only by design: the whole app is a candle in the dark, light never applies.
+        UIUserInterfaceStyle: Dark
+        # No non-exempt encryption — auto-answers the export-compliance question on upload.
+        ITSAppUsesNonExemptEncryption: false
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.vigilia
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        TARGETED_DEVICE_FAMILY: 1
+        DEVELOPMENT_TEAM: 56BK7T2JG7
+        CODE_SIGN_STYLE: Automatic
