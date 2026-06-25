@@ -45,11 +45,11 @@ Requirements: Xcode 26 or newer, iOS 18 or newer. Portrait only, dark only.
 | `Vigilia/VigiliaApp.swift` | App entry |
 | `Vigilia/Views/RitualView.swift` | The single canvas and the session's state machine |
 | `Vigilia/Views/WritingLine.swift` | One styled line of the canvas (the same component for both movements) |
-| `Vigilia/Views/AscensionView.swift` | The release animation |
+| `Vigilia/Views/AscensionView.swift` | The release: a per-glyph dissolve (`TextRenderer`) |
 | `Vigilia/ViewModels/RitualModel.swift` | In-memory state, persisted nowhere |
 | `Vigilia/Theme/Theme.swift` | Light, colour, typography, and motion |
 | `Vigilia/Content/Seeds.swift` | The opening and loving-kindness lines |
 
 ## Status
 
-Early scaffold. The full flow runs end to end. Three things are intentionally provisional and still being tuned: the seed phrases, the exact colour and light values, and the technique for the closing animation.
+The full flow runs end to end: name, seal, wish, and a release that dissolves the words glyph by glyph into the dark, with Reduce Motion respected. Sealing is done by drawing a fixed handle at the bottom centre. Two things are still being tuned on device: the seed wording (drafted, not final) and the exact colour and light values.

@@ -1,29 +1,56 @@
 import SwiftUI
 
-/// The release. The words themselves rise, fade, and dissolve upward into the dark — an
-/// offering, never an erasure. (See the vault note "Ephemerality & transmutation": the
-/// distinction between *ascending* and *deleting* is load-bearing and must survive here.
-/// Ascending reads as letting go; wiping would read as repression.)
+/// The release, drawn glyph by glyph. Each letter of the well-wishing lifts, drifts a little
+/// sideways, blurs, and fades on its own slightly-offset schedule, so the words come apart
+/// into light and ascend like embers, dissolving into the upper darkness. An offering, never
+/// an erasure (see the vault note "Ephemerality & transmutation").
 ///
-/// This is a deliberately restrained **placeholder**. The final technique — a particle
-/// system vs. dissolving the actual glyphs — is still an open question. Whatever replaces
-/// it must read as rising-and-offering, and must never look like festive confetti.
-private struct Ascending: ViewModifier {
-    let active: Bool
+/// Restraint is the whole point: the rise is short and the fade keeps pace with it, so the
+/// motes go out as they lift rather than flying off. It must never read as confetti.
+///
+/// Driven by `progress` (0 = whole and bright, 1 = gone). The renderer is `Animatable`, so
+/// animating `progress` with `Motion.ascension` interpolates it frame by frame. Uses iOS 18's
+/// `TextRenderer`, which gives per-glyph access to the laid-out text.
+struct EmberAscension: TextRenderer, Animatable {
+    /// 0 → 1 across the whole dissolve.
+    var progress: Double
 
-    func body(content: Content) -> some View {
-        content
-            .blur(radius: active ? 16 : 0)      // the letters come apart
-            .opacity(active ? 0 : 1)            // and fade to nothing
-            .scaleEffect(active ? 1.06 : 1)     // loosening as they lift
-            .offset(y: active ? -240 : 0)       // rising into the upper darkness
+    // Feel — all tunable.
+    private let stagger: Double = 0.35     // how much the dissolve sweeps from the line's start to its end
+    private let rise: CGFloat = 46         // how far a glyph lifts (kept short; the fade finishes it)
+    private let drift: CGFloat = 9         // sideways scatter, like embers
+    private let maxBlur: CGFloat = 8
+
+    var animatableData: Double {
+        get { progress }
+        set { progress = newValue }
     }
-}
 
-extension View {
-    /// Apply the ascension to a piece of text. Animate the `active` flag with
-    /// `Motion.ascension` so the rise happens at the tempo of a breath.
-    func ascending(_ active: Bool) -> some View {
-        modifier(Ascending(active: active))
+    func draw(layout: Text.Layout, in context: inout GraphicsContext) {
+        let slices = layout.flatMap { line in line.flatMap { run in run } }
+        let count = max(slices.count, 1)
+
+        for (i, slice) in slices.enumerated() {
+            // Each glyph begins a little after the one before it, then takes the rest of the
+            // timeline to dissolve: a gentle wave from the start of the line to its end.
+            let delay = (Double(i) / Double(count)) * stagger
+            let local = (progress - delay) / max(1 - stagger, 0.001)
+            let t = min(max(local, 0), 1)
+
+            guard t > 0 else {
+                context.draw(slice)        // not lifting yet: draw it whole
+                continue
+            }
+
+            // Deterministic per-glyph jitter: organic scatter that never changes between runs.
+            let jitter = sin(Double(i) * 21.17)
+
+            var copy = context
+            copy.opacity = 1 - t                                   // goes out as it lifts
+            copy.translateBy(x: drift * CGFloat(jitter) * CGFloat(t),
+                             y: -rise * CGFloat(pow(t, 1.3)))       // a short, easing rise
+            copy.addFilter(.blur(radius: maxBlur * CGFloat(t)))    // coming apart into light
+            copy.draw(slice)
+        }
     }
 }
