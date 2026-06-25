@@ -19,15 +19,17 @@ final class RitualModel {
     var wound: String = ""
     var wish: String = ""
 
-    /// The changing opening line, and the loving-kindness line. Chosen fresh each launch so
-    /// the app greets you a little differently every time — the structure of the ritual
-    /// lives in this language, not in any visible "step 1 / step 2" chrome.
+    /// The changing opening line, and the loving-kindness line that answers it. Drawn fresh
+    /// each launch from a single register (see `Seeds`), so the two always cohere — the app
+    /// greets you a little differently every time, and the structure of the ritual lives in
+    /// this language, not in any visible "step 1 / step 2" chrome.
     private(set) var welcomeSeed: String
     private(set) var wishSeed: String
 
     init() {
-        welcomeSeed = Seeds.welcome.randomElement() ?? ""
-        wishSeed = Seeds.wish.randomElement() ?? ""
+        let opening = Seeds.draw()
+        welcomeSeed = opening.welcome
+        wishSeed = opening.turn
     }
 
     var canSeal: Bool { phase == .naming && !wound.isBlank }
@@ -54,10 +56,11 @@ final class RitualModel {
         wish = ""
     }
 
-    /// A new vigil, with new seeds.
+    /// A new vigil: a fresh register, a fresh pair of seeds.
     func beginAgain() {
-        welcomeSeed = Seeds.welcome.randomElement() ?? ""
-        wishSeed = Seeds.wish.randomElement() ?? ""
+        let opening = Seeds.draw()
+        welcomeSeed = opening.welcome
+        wishSeed = opening.turn
         phase = .naming
     }
 }

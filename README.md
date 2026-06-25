@@ -2,16 +2,16 @@
 
 An iOS app that turns a loving-kindness meditation into a single, quiet ritual.
 
-You bring to mind someone who has recently hurt you. You name the wound, then you turn toward wishing that person well. When you finish, you release it: the words dissolve into light and rise, and nothing is kept. The next time you open the app, there is no history to return to. There was never meant to be.
+You bring to mind something that weighs on you. It might be a person who hurt you, a way you have hurt yourself, a situation with more than one person caught in it, or a loss with no one to blame. You name it, then you turn toward wishing it well. When you finish, you release it: the words dissolve into light and rise, and nothing is kept. The next time you open the app, there is no history to return to. There was never meant to be.
 
 ## The idea
 
-Vigilia is built around one practice, *Metta Bhavana* (loving-kindness), and one premise: *love your enemy as you love yourself*. It is a frame, not a journal. Its only job is to hold a space well enough that you want to return to it.
+Vigilia is built around one practice, *Metta Bhavana* (loving-kindness), which traditionally moves through stages: kindness for yourself, for someone you love, for someone difficult, and for everyone. Vigilia holds space for any of these. The hardest of them, to wish well the one who wounded you, is one door among several, not the only one. It is a frame, not a journal. Its only job is to hold a space well enough that you want to return to it, including on the nights you are not angry at anyone, only grieving.
 
 A session has two movements, on a single screen:
 
-1. **Name the wound.** A changing opening line invites you in. You write what was done to you.
-2. **Wish them well.** The wound seals and dims and recedes. A second line appears in its place, and you write the well-wishing at full light. Then you release it, and it rises and is gone.
+1. **Name it.** A changing opening line invites you in, and each time it opens a different kind of grief: a person, yourself, a shared situation, or a formless loss. You write what weighs on you.
+2. **Wish it well.** The first line seals and dims and recedes. A second line appears in its place, matched to the same kind of grief, and you write the well-wishing at full light. Then you release it, and it rises and is gone.
 
 The screen returns to black. The note exists nowhere.
 
