@@ -9,30 +9,33 @@ import SwiftUI
 /// words are New York *regular* at reading size (the louder voice).
 ///
 /// `glow` and `lift` are driven live by the parent so the line can respond to the seal
-/// gesture in real time (dimming and sinking under the finger), instead of only snapping at
-/// the end. The parent owns the animation timing, so there is no implicit animation here.
+/// gesture in real time. The parent owns that animation timing, so there is none here.
 struct WritingLine: View {
     @Binding var text: String
     let seed: String
-    let glow: Double          // luminosity of the person's words right now (0...1 of `light`)
-    let lift: CGFloat         // live vertical offset from the drag / seal feedback
+    let glow: Double            // luminosity of the person's words right now (0...1 of `light`)
+    let lift: CGFloat           // live vertical offset from the drag / seal feedback
     let editable: Bool
+    let isActive: Bool          // is this line's field currently focused
+    let dismissSeedOnFocus: Bool
     var focus: FocusState<RitualField?>.Binding
     let field: RitualField
 
+    /// The welcome line leaves the instant you press in (so no field sits over it); the wish
+    /// line stays as a prompt while the field is focused-but-empty, leaving only when you write.
+    private var showSeed: Bool {
+        text.isEmpty && !(dismissSeedOnFocus && isActive)
+    }
+
     var body: some View {
         ZStack(alignment: .topLeading) {
-            // The seed does not blink out the instant you type. It fades and lifts gently
-            // away, so the invitation gives way to the voice instead of being overwritten.
-            // This is the fix for both the missing fade and your words sitting on top of it.
             Text(seed)
                 .font(Theme.display)
                 .foregroundStyle(Theme.light.opacity(Theme.seedGlow))
                 .lineSpacing(Theme.seedLeading)
-                .opacity(text.isEmpty ? 1 : 0)
-                .offset(y: text.isEmpty ? 0 : -14)
+                .opacity(showSeed ? 1 : 0)
                 .allowsHitTesting(false)
-                .animation(Motion.fade, value: text.isEmpty)
+                .animation(Motion.fade, value: showSeed)
 
             TextField("", text: $text, axis: .vertical)
                 .font(Theme.body)

@@ -6,73 +6,37 @@ enum RitualField { case wound, wish }
 
 /// The whole app is this one screen. There is no navigation, no second view: the session is
 /// a single canvas whose *state* changes — naming the wound, sealing it, wishing well, the
-/// ascension, the void. Keeping it to one surface is what makes the ritual feel seamless.
+/// ascension, the void.
+///
+/// The seal / release gesture lives on a **fixed handle at the bottom centre**, never on the
+/// text. Reading a drag over a text field fought the field and made the seal unreliable; a
+/// dedicated handle is robust and always in the same place. A dimming glass scrim sits over
+/// the bottom so the writing dissolves into it instead of colliding with the handle.
 struct RitualView: View {
     @State private var model = RitualModel()
     @FocusState private var focus: RitualField?
 
-    /// Live finger travel for the current gesture. Drives the wound's dim-and-sink in real
-    /// time so the swipe never feels dead. Reset (with animation) on commit or settle-back.
+    /// Live finger travel on the bottom handle. Drives the wound's dim-and-sink in real time.
     @State private var dragY: CGFloat = 0
 
-    private let sealThreshold: CGFloat = 90      // how far down to seal the wound
-    private let releaseThreshold: CGFloat = 90   // how far up to release the wish
+    private let sealThreshold: CGFloat = 48      // pull the handle down this far to seal
+    private let releaseThreshold: CGFloat = 64   // push it up this far to release
+
+    private var isWriting: Bool { model.phase == .naming || model.phase == .wishing }
 
     var body: some View {
         ZStack {
             Theme.background.ignoresSafeArea()
-
-            VStack(alignment: .leading, spacing: Theme.lineGap) {
-                // The wound. Editable while naming; afterwards a dimmed, read-only memory
-                // that has receded into the penumbra. It fades out as the wish ascends.
-                if model.phase != .void {
-                    WritingLine(text: $model.wound,
-                                seed: model.welcomeSeed,
-                                glow: woundGlow,
-                                lift: woundLift,
-                                editable: model.phase == .naming,
-                                focus: $focus,
-                                field: .wound)
-                        .opacity(model.phase == .ascending ? 0 : 1)
-
-                    // Pull down to seal. The hint appears once the wound has been named.
-                    BreathHint(systemName: "chevron.compact.down",
-                               visible: model.phase == .naming && model.canSeal)
-                        .padding(.top, 2)
-                }
-
-                // The well-wishing. Appears on the next line of the *same* canvas — one
-                // continuous flow, no new screen — and plays the ascension when released.
-                if model.phase == .wishing || model.phase == .ascending {
-                    WritingLine(text: $model.wish,
-                                seed: model.wishSeed,
-                                glow: Theme.voiceGlow,
-                                lift: wishLift,
-                                editable: model.phase == .wishing,
-                                focus: $focus,
-                                field: .wish)
-                        .ascending(model.phase == .ascending)
-                        .transition(.opacity)
-
-                    // Send up to release.
-                    BreathHint(systemName: "chevron.compact.up",
-                               visible: model.phase == .wishing && model.canRelease)
-                        .padding(.top, 2)
-                }
-            }
-            .padding(.horizontal, Theme.margin)
-            .padding(.top, Theme.topInset)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            writingContent
         }
-        .contentShape(Rectangle())
-        // Draw the wound DOWN to seal it; send the wish UP to release it. The wound now
-        // responds the whole way (see `woundGlow` / `woundLift`), so the gesture is felt as
-        // it happens, not only at the end. Starting the drag from the hint / open area below
-        // the text is the most reliable spot (a drag over long text can fight the field).
-        .simultaneousGesture(dragGesture)
-        // In the void, a silent tap begins a new vigil. No button — the emptiness is the point.
-        .onTapGesture { if model.phase == .void { beginAgain() } }
-        // A single low haptic beat as the wound locks; a soft one as the wish is released.
+        // The handle floats just above the keyboard while writing, and rests at the bottom
+        // otherwise. It reserves its own space, so the text can never sit beneath it.
+        .safeAreaInset(edge: .bottom) {
+            bottomZone
+                .opacity(isWriting ? 1 : 0)
+                .allowsHitTesting(isWriting)
+                .animation(Motion.toVoid, value: isWriting)
+        }
         .sensoryFeedback(trigger: model.phase) { _, now in
             switch now {
             case .wishing:   return .impact(weight: .heavy, intensity: 0.5)
@@ -80,17 +44,102 @@ struct RitualView: View {
             default:         return nil
             }
         }
-        // A beat of stillness to let the welcome line breathe, then the field invites you in.
-        .task {
-            try? await Task.sleep(for: .seconds(0.6))
-            if model.phase == .naming { focus = .wound }
-        }
         .preferredColorScheme(.dark)
     }
 
-    // MARK: - Live drag feedback
+    // MARK: - The writing
 
-    /// 0 → 1 across the current gesture's threshold (downward while naming, upward while wishing).
+    private var writingContent: some View {
+        VStack(alignment: .leading, spacing: Theme.lineGap) {
+            if model.phase != .void {
+                WritingLine(text: $model.wound,
+                            seed: model.welcomeSeed,
+                            glow: woundGlow,
+                            lift: woundLift,
+                            editable: model.phase == .naming,
+                            isActive: focus == .wound,
+                            dismissSeedOnFocus: true,      // welcome leaves the moment you press in
+                            focus: $focus,
+                            field: .wound)
+                    .opacity(model.phase == .ascending ? 0 : 1)
+            }
+
+            if model.phase == .wishing || model.phase == .ascending {
+                WritingLine(text: $model.wish,
+                            seed: model.wishSeed,
+                            glow: Theme.voiceGlow,
+                            lift: wishLift,
+                            editable: model.phase == .wishing,
+                            isActive: focus == .wish,
+                            dismissSeedOnFocus: false,     // the wish prompt stays until you write
+                            focus: $focus,
+                            field: .wish)
+                    .ascending(model.phase == .ascending)
+                    .transition(.opacity)
+            }
+        }
+        .padding(.horizontal, Theme.margin)
+        .padding(.top, Theme.topInset)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        // The writing fades out over its last stretch, so it dissolves toward the glass
+        // rather than running into it. (Long entries may want a scroll-to-caret later.)
+        .mask(
+            LinearGradient(stops: [
+                .init(color: .black, location: 0),
+                .init(color: .black, location: 0.90),
+                .init(color: .clear, location: 1.0),
+            ], startPoint: .top, endPoint: .bottom)
+        )
+        .contentShape(Rectangle())
+        // Press anywhere in the canvas to begin (and so press *over the welcome line* makes it
+        // leave at once). Run alongside the field's own tap so caret behaviour still works.
+        .simultaneousGesture(TapGesture().onEnded {
+            switch model.phase {
+            case .naming:    focus = .wound
+            case .wishing:   focus = .wish
+            case .void:      beginAgain()
+            case .ascending: break
+            }
+        })
+    }
+
+    // MARK: - The fixed handle + dimming glass
+
+    private var bottomZone: some View {
+        ZStack {
+            // The dimming "liquid glass": a dark glass that fades in from the top, deepening
+            // the existing darkness rather than adding a panel. Liquid Glass proper on iOS 26;
+            // a thin material below. Tune the prominence here if it reads too bright.
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .mask(LinearGradient(colors: [.clear, .black, .black],
+                                     startPoint: .top, endPoint: .bottom))
+                .overlay(
+                    LinearGradient(colors: [.clear, Theme.backgroundBottom.opacity(0.92)],
+                                   startPoint: .top, endPoint: .bottom)
+                )
+                .allowsHitTesting(false)
+
+            // The handle: pull DOWN to seal, push UP to release. It breathes once there is
+            // something to commit, and marks the fixed centre you draw from.
+            BreathHint(systemName: model.phase == .wishing ? "chevron.compact.up" : "chevron.compact.down",
+                       visible: (model.phase == .naming && model.canSeal)
+                             || (model.phase == .wishing && model.canRelease))
+                .padding(.bottom, 6)
+        }
+        .frame(height: Theme.bottomZoneHeight)
+        .frame(maxWidth: .infinity)
+        .contentShape(Rectangle())
+        .gesture(
+            DragGesture(minimumDistance: 6)
+                .onChanged { value in dragY = value.translation.height }
+                .onEnded { _ in onDragEnded() }
+        )
+    }
+
+    // MARK: - Live feedback
+
+    /// 0 → 1 across the current gesture's threshold (down while naming, up while wishing).
     private var dragProgress: CGFloat {
         switch model.phase {
         case .naming:  return max(0, min(1, dragY / sealThreshold))
@@ -99,41 +148,25 @@ struct RitualView: View {
         }
     }
 
-    /// The wound burns at full light while you write, and dims toward the penumbra as you
-    /// push it down. Once sealed it stays dim.
+    /// The wound burns at full light while you write, dimming toward the penumbra as you draw
+    /// it down. Once sealed it stays dim.
     private var woundGlow: Double {
         guard model.phase == .naming else { return Theme.woundGlow }
         return Theme.voiceGlow - (Theme.voiceGlow - Theme.woundGlow) * Double(dragProgress)
     }
+    private var woundLift: CGFloat { model.phase == .naming ? dragProgress * 36 : 0 }
+    private var wishLift: CGFloat { model.phase == .wishing ? -dragProgress * 60 : 0 }
 
-    /// The wound sinks as you draw it down.
-    private var woundLift: CGFloat {
-        model.phase == .naming ? max(0, dragY) * 0.3 : 0
-    }
-
-    /// The wish rises a little as you lift it, then the ascension carries it the rest of the way.
-    private var wishLift: CGFloat {
-        model.phase == .wishing ? min(0, dragY) * 0.35 : 0
-    }
-
-    // MARK: - Gesture
-
-    private var dragGesture: some Gesture {
-        DragGesture(minimumDistance: 12)
-            .onChanged { value in dragY = value.translation.height }  // tracked live, no animation
-            .onEnded { _ in onDragEnded() }
-    }
+    // MARK: - Commit
 
     private func onDragEnded() {
         if model.phase == .naming, dragY > sealThreshold {
-            // Seal: the wound settles into its dimmed, locked state; the caret follows down.
             withAnimation(Motion.seal) {
                 model.seal()
                 dragY = 0
             }
-            focus = .wish
+            focus = .wish                       // the caret follows the wound downward
         } else if model.phase == .wishing, -dragY > releaseThreshold {
-            // Release: the wish keeps rising into the ascension, then the screen returns to void.
             focus = nil
             withAnimation(Motion.ascension) {
                 model.release()
@@ -143,8 +176,7 @@ struct RitualView: View {
                 withAnimation(Motion.toVoid) { model.enterVoid() }
             }
         } else {
-            // Didn't reach the threshold: settle gently back to where it was.
-            withAnimation(Motion.seal) { dragY = 0 }
+            withAnimation(Motion.seal) { dragY = 0 }   // didn't reach: settle back
         }
     }
 

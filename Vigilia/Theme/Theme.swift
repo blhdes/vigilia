@@ -26,6 +26,10 @@ enum Theme {
         endPoint: .bottom
     )
 
+    /// The dark end of the background, reused by the bottom dimming scrim so the glass reads
+    /// as the same darkness deepening, not a foreign panel laid on top.
+    static let backgroundBottom = Color(red: 0.026, green: 0.024, blue: 0.042)
+
     // MARK: Luminosity states (as opacities of `light`)
 
     /// The person's own words, at full light.
@@ -49,6 +53,7 @@ enum Theme {
     static let lineGap: CGFloat = 20       // between the wound line and the wish line
     static let margin: CGFloat = 28
     static let topInset: CGFloat = 96
+    static let bottomZoneHeight: CGFloat = 104   // the fixed pull-handle + dimming-glass zone
 }
 
 /// Motion is slow, at the tempo of a breath — never the tempo of a UI animation. Nothing
